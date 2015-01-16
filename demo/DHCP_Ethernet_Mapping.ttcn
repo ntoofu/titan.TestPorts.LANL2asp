@@ -1,0 +1,170 @@
+/******************************************************************************
+* Copyright (c) 2007, 2014  Ericsson AB
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Eclipse Public License v1.0
+* which accompanies this distribution, and is available at
+* http://www.eclipse.org/legal/epl-v10.html
+*
+* Contributors:
+*  Gabor Bettesch - initial implementation and initial documentation
+*  Bernadett Diana Ivan
+*  Endre Kulcsar
+*  Gabor Szalai
+*  Gabor Tatarka
+*  Laszlo Skumat
+*  Tamas Buti
+*  Tibor Bende
+*  Tibor Csondes
+******************************************************************************/
+module DHCP_Ethernet_Mapping
+{
+//=========================================================================
+// Import Part
+//=========================================================================
+  import from IP_Types all;
+  import from UDP_Types all;
+  import from DHCP_Types all;
+  import from General_Types all;
+  import from LANL2asp_PortType all;
+  import from LANL2asp_Types all;
+
+//=========================================================================
+// Module Parameters
+//=========================================================================
+  modulepar octetstring tsp_eth_proto := '0800'O;            //default IPv4
+  
+//=========================================================================
+// Data Types
+//=========================================================================
+  type record ASP_DHCP {
+    OCT6          eth_src_addr,
+    OCT6          eth_dst_addr,
+    OCT4          ip_src_addr,
+    OCT4          ip_dst_addr,
+    integer       udp_src_port,
+    integer       udp_dst_port,
+    PDU_DHCP      pDU_DHCP
+  }
+//=========================================================================
+// Port Types
+//=========================================================================
+  type port DHCP_PT message {
+    inout ASP_DHCP;
+  } with {extension "internal"}
+
+//=========================================================================
+// Component Types
+//=========================================================================
+  type component DHCP_Ethernet_EncDec_CT
+  {
+    port DHCP_PT      DHCP_PCO;
+    port LANL2asp_PT  LANL2_PCO;
+  } 
+
+  type component DHCP_CT
+  {
+    port  DHCP_PT     DHCP_PCO;
+    timer t_T_DHCP := 60.0;
+    var   ASP_DHCP    v_ASP_DHCP;
+    var   OCT4        v_xid
+  }
+
+//=========================================================================
+// Functions
+//=========================================================================
+
+// DHCP - Ethernet EncDec Component Behaviour
+  function f_MASG_EncDecComp_Behaviour() runs on DHCP_Ethernet_EncDec_CT
+  {
+    var ASP_DHCP  vl_ASP_DHCP;
+    var ASP_LANL2 vl_ASP_LANL2;
+    var PDU_LANL2 vl_PDU_LANL2;
+    var OCT2 cksum;
+    var UDP_packet  vl_UDP_packet_send,  vl_UDP_packet_recv;
+    var IPv4_packet vl_IPv4_packet_send, vl_IPv4_packet_recv;
+
+    vl_UDP_packet_send := {
+      header := {
+        len     := 0,
+        cksum   := 0
+      }
+    };
+
+    vl_IPv4_packet_send := {
+      header := {
+        ver := 4,
+        hlen := 5,
+        tos := 0,
+        tlen := 0,    
+        id := 0,
+        res := '0'B,
+        dfrag := '0'B,
+        mfrag := '0'B,
+        foffset := 0,
+        ttl := 255,
+        proto := 17, 
+        cksum := 0
+      },
+      ext_headers := omit
+    };
+    
+    alt
+    { 
+      [] DHCP_PCO.receive(ASP_DHCP:?) -> value vl_ASP_DHCP
+        {
+          // Encode DHCP PDU into UDP packet
+          vl_UDP_packet_send.header.srcport := vl_ASP_DHCP.udp_src_port;
+          vl_UDP_packet_send.header.dstport := vl_ASP_DHCP.udp_dst_port;
+          vl_UDP_packet_send.payload := enc_PDU_DHCP(vl_ASP_DHCP.pDU_DHCP);
+
+          // Encode UDP packet into IPv4 packet
+          vl_IPv4_packet_send.header.srcaddr := vl_ASP_DHCP.ip_src_addr;
+          vl_IPv4_packet_send.header.dstaddr := vl_ASP_DHCP.ip_dst_addr;
+          vl_IPv4_packet_send.payload := f_UDP_enc(vl_UDP_packet_send);
+
+          // Encode IPv4 packet into LANL2 PDU 
+          vl_PDU_LANL2 := f_IPv4_enc(vl_IPv4_packet_send);
+          cksum := f_IPv4_checksum(vl_PDU_LANL2);
+          // Copy the calculated checksum into the encoded data.
+          // The checksum field is on the 11th and 12nd octet.
+          vl_PDU_LANL2[10] := cksum[0];
+          vl_PDU_LANL2[11] := cksum[1];
+
+//        For testing PDU_LANL2
+//          LANL2_PCO.send (vl_PDU_LANL2);
+
+          // Encode IPv4 packet into LANL2 ASP 
+          vl_ASP_LANL2.eth_dst_addr := vl_ASP_DHCP.eth_dst_addr;
+          vl_ASP_LANL2.eth_src_addr := vl_ASP_DHCP.eth_src_addr;
+          vl_ASP_LANL2.type_field := tsp_eth_proto;
+          vl_ASP_LANL2.payload := vl_PDU_LANL2;
+          
+          LANL2_PCO.send (vl_ASP_LANL2)
+
+	  repeat
+        }
+      [] LANL2_PCO.receive(ASP_LANL2:?) -> value vl_ASP_LANL2
+        {
+          // Decode LANL2 PDU into IPv4 packet
+          vl_IPv4_packet_recv := f_IPv4_dec(vl_ASP_LANL2.payload);
+
+          // Decode IPV4 packet payload into UDP packet
+          vl_UDP_packet_recv := f_UDP_dec(vl_IPv4_packet_recv.payload);
+
+          // Decode UDP packet payload into DHCP PDU
+          vl_ASP_DHCP.pDU_DHCP := dec_PDU_DHCP(vl_UDP_packet_recv.payload);
+          
+          // Fill the ASP_DHCP packet
+          vl_ASP_DHCP.eth_src_addr := vl_ASP_LANL2.eth_src_addr;
+          vl_ASP_DHCP.eth_dst_addr := vl_ASP_LANL2.eth_dst_addr;
+          vl_ASP_DHCP.ip_src_addr  := vl_IPv4_packet_recv.header.srcaddr;
+          vl_ASP_DHCP.ip_dst_addr  := vl_IPv4_packet_recv.header.dstaddr;
+          vl_ASP_DHCP.udp_src_port := vl_UDP_packet_recv.header.srcport;
+          vl_ASP_DHCP.udp_dst_port := vl_UDP_packet_recv.header.dstport;
+          
+          DHCP_PCO.send (vl_ASP_DHCP)
+	  repeat
+        }
+    }//end alt
+  }//end function
+}// end of module

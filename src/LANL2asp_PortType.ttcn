@@ -1,0 +1,43 @@
+/******************************************************************************
+* Copyright (c) 2007, 2014  Ericsson AB
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Eclipse Public License v1.0
+* which accompanies this distribution, and is available at
+* http://www.eclipse.org/legal/epl-v10.html
+*
+* Contributors:
+*  Gabor Bettesch - initial implementation and initial documentation
+*  Bernadett Diana Ivan
+*  Endre Kulcsar
+*  Gabor Szalai
+*  Gabor Tatarka
+*  Laszlo Skumat
+*  Tamas Buti
+*  Tibor Bende
+*  Tibor Csondes
+******************************************************************************/
+//
+//  File:               LANL2asp_PortType.ttcn
+//  Description:        LANL2 testport port definition file
+//  Rev:                R8A
+//  Prodnr:             CNL 113 519
+//
+
+module LANL2asp_PortType {
+    import from LANL2asp_Types all;
+
+    type port LANL2asp_PT message {
+        inout ASP_LANL2;
+        out   PDU_LANL2;
+        in    ASP_LANL2_Error;
+        inout ASP_v2_LANL2;
+        out   ASP_LANL2_open_interface;
+        out   ASP_LANL2_close_interface;
+        in    ASP_LANL2_open_result;
+        in    ASP_v2_LANL2_Error;
+    } with {extension "provider"}
+
+    external function f_LANL2asp_set_param(inout LANL2asp_PT portRef,
+                                           in charstring     param_name,
+                                           in charstring     param_value) return LANL2_Parameter_result;
+} //end of module

@@ -1,0 +1,416 @@
+/******************************************************************************
+* Copyright (c) 2007, 2014  Ericsson AB
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Eclipse Public License v1.0
+* which accompanies this distribution, and is available at
+* http://www.eclipse.org/legal/epl-v10.html
+*
+* Contributors:
+*  Gabor Bettesch - initial implementation and initial documentation
+*  Bernadett Diana Ivan
+*  Endre Kulcsar
+*  Gabor Szalai
+*  Gabor Tatarka
+*  Laszlo Skumat
+*  Tamas Buti
+*  Tibor Bende
+*  Tibor Csondes
+******************************************************************************/
+module demo_DHCP
+{  
+//=========================================================================
+// Import Part
+//=========================================================================
+  import from General_Types all;
+  import from LANL2asp_PortType all;
+  import from DHCP_Ethernet_Mapping all;
+
+//=========================================================================
+// Module Parameters
+//=========================================================================
+  modulepar octetstring tsp_eth_mac_source;
+  modulepar octetstring tsp_eth_mac_destination;
+  modulepar charstring  tsp_interface_name;
+
+//=========================================================================
+// Component Types
+//=========================================================================
+  type component MASG_SCT
+  {
+    var DHCP_Ethernet_EncDec_CT vc_DHCP_Ethernet_EncDec_CT;
+    var DHCP_CT vc_DHCP_CT;
+    port LANL2asp_PT  LANL2_PCO;
+  } 
+
+//=========================================================================
+// Templates
+//=========================================================================
+
+// Specific templates
+  template ASP_DHCP  t_ASP_DHCP_REQ_discover(OCT4 pl_xid, OCT6 pl_srcMAC) := {
+    eth_src_addr := pl_srcMAC,
+    eth_dst_addr := tsp_eth_mac_destination,
+    ip_src_addr := '00000000'O,
+    ip_dst_addr := 'FFFFFFFF'O,
+    udp_src_port := 68,
+    udp_dst_port := 67,
+    pDU_DHCP := {
+      bOOT_REQUEST := {
+        op        :=   1,
+        htype     :=   DHCP_HTYPE_Ethernet_10Mb, //10mb Ethernet
+        hlen      :=   6,                        //10mb Ethernet
+        hops      :=   0,                        // for clients
+        xid       :=   pl_xid,
+        secs      :=   0,
+        flags     :=   '8000'O,                  // broadcast
+        ciaddr    :=  '00000000'O,
+        yiaddr    :=  '00000000'O,
+        siaddr    :=  '00000000'O,
+        giaddr    :=  '00000000'O,
+        chaddr    :=  pl_srcMAC & '00000000000000000000'O,
+        sname := { sname := ""},
+        file   := { file  := "" },
+        options := {
+          magicCookie := '63825363'O,            // from RFC1497
+          options := {
+            {
+              message_type := {
+                code := DHCP_Message_Type_OPTION_TYPE,
+                len  := 0,
+                val  := DHCP_Discover
+              }                                                                  
+            },
+            {
+              relay_agent_information := {
+                code := DHCP_Relay_Agent_Information_OPTION_TYPE,
+                len  := 0,
+                val  := { 
+                  {
+                    code := 1,
+                    id_len := 0,
+                    id := {
+                      string_format := '001122'O
+                    } 
+                  }
+                }
+              }                                                                  
+            },
+            {
+              end := {
+                code := DHCP_END_OPTION_TYPE
+              }
+            }
+          }
+        }//options end
+      }//boot_request end
+    }//PDU DHCP end
+  }//ASP DHCP end
+
+  template ASP_DHCP  t_ASP_DHCP_REQ_release(OCT4 pl_xid, OCT6 pl_srcMAC, OCT4 pl_ipaddr) := {
+    eth_src_addr := pl_srcMAC,
+    eth_dst_addr := tsp_eth_mac_destination,
+    ip_src_addr  := pl_ipaddr,
+    ip_dst_addr := 'FFFFFFFF'O,
+    udp_src_port := 68,
+    udp_dst_port := 67,
+    pDU_DHCP := {
+      bOOT_REQUEST := {
+        op        :=   1,
+        htype     :=   DHCP_HTYPE_Ethernet_10Mb, //10mb Ethernet
+        hlen      :=   6,                        //10mb Ethernet
+        hops      :=   0,                        // for clients
+        xid       :=   pl_xid,
+        secs      :=   0,
+        flags     :=   '8000'O,                  // broadcast
+        ciaddr    :=   pl_ipaddr,
+        yiaddr    :=  '00000000'O,
+        siaddr    :=  '00000000'O,
+        giaddr    :=  '00000000'O,
+        chaddr    :=  pl_srcMAC & '00000000000000000000'O,
+        sname := { sname := ""},
+        file   := { file  := "" },
+        options := {
+          magicCookie := '63825363'O,            // from RFC1497
+          options := {
+            {
+              message_type := {
+                code := DHCP_Message_Type_OPTION_TYPE,
+                len  := 0,
+                val  := DHCP_Release
+              }                                                                  
+            },
+            {
+              end := {
+                code := DHCP_END_OPTION_TYPE
+              }
+            }
+          }
+        }//options end
+      }//boot_request end
+    }//PDU DHCP end
+  }//ASP DHCP end
+
+  template ASP_DHCP  t_ASP_DHCP_REQ_req(OCT4 pl_xid, OCT4 pl_ip_addr, OCT6 pl_srcMAC, OCT4 pl_serverId) := {
+    eth_src_addr := pl_srcMAC,
+    eth_dst_addr := tsp_eth_mac_destination,
+    ip_src_addr := '00000000'O,
+    ip_dst_addr := 'FFFFFFFF'O,
+    udp_src_port := 68,
+    udp_dst_port := 67,
+    pDU_DHCP := {
+      bOOT_REQUEST := {
+        op        :=   1,
+        htype     :=   DHCP_HTYPE_Ethernet_10Mb, //10mb Ethernet
+        hlen      :=   6,                        //10mb Ethernet
+        hops      :=   0,                        // for clients
+        xid       :=   pl_xid,
+        secs      :=   0,
+        flags     :=   '8000'O,                  // broadcast
+        ciaddr    :=  '00000000'O,
+        yiaddr    :=  '00000000'O,
+        siaddr    :=  '00000000'O,
+        giaddr    :=  '00000000'O,
+        chaddr    :=  pl_srcMAC & '00000000000000000000'O,
+        sname := { sname := ""},
+        file   := { file  := "" },
+        options := {
+          magicCookie := '63825363'O,            // from RFC1497
+          options := {
+            {
+              message_type := {
+                code := DHCP_Message_Type_OPTION_TYPE,
+                len  := 0,
+                val  := DHCP_Request
+              }                                                                  
+            },
+            {
+              server_identifier := {
+                code := DHCP_Server_Identifier_OPTION_TYPE,
+                len := 0,
+                val := pl_serverId
+              }
+            },
+            {
+              requested_IP_address := {
+                code := DHCP_Requested_IP_Address_OPTION_TYPE,
+                len := 0,
+                val := pl_ip_addr
+              }
+            },
+            {
+              end := {
+                code := DHCP_END_OPTION_TYPE
+              }
+            }
+          }
+        }//options end
+      }//boot_request end
+    }//PDU DHCP end
+  }//ASP DHCP end
+
+// Receiving templates
+  template ASP_DHCP  tr_ASP_DHCP_REPLY_offer(OCT4 pl_xid, OCT6 pl_srcMAC) := {
+    eth_src_addr := ?,
+    eth_dst_addr := 'FFFFFFFFFFFF'O,
+    ip_src_addr := ?,
+    ip_dst_addr := 'FFFFFFFF'O,
+    udp_src_port := 67,
+    udp_dst_port := 68,
+    pDU_DHCP := {
+      bOOT_REPLY := {
+        op := 2,
+        htype := DHCP_HTYPE_Ethernet_10Mb,
+        hlen := 6,
+        hops := ?,
+        xid := pl_xid,
+        secs := 0,
+        flags := '8000'O,
+        ciaddr := '00000000'O,
+        yiaddr := ?,
+        siaddr := ?,
+        giaddr := ?,
+        chaddr := pl_srcMAC & '00000000000000000000'O,
+        sname := {
+          sname := ""
+        },
+        file := {
+          file := ""
+        },
+        options := {
+          magicCookie := '63825363'O,            // from RFC1497
+          options := {
+            {
+              message_type := {
+                code := DHCP_Message_Type_OPTION_TYPE,
+                len := 1,
+                val := DHCP_Offer
+              }
+            },
+            *,
+            {
+              end := {
+                code := DHCP_END_OPTION_TYPE
+              }
+            }
+          }
+        }//options end
+      }//boot_reply end
+    }//PDU DHCP end
+  }//ASP DHCP end
+
+  template ASP_DHCP  tr_ASP_DHCP_REPLY_ack(OCT4 pl_xid, OCT6 pl_srcMAC) := {
+    eth_src_addr := ?,
+    eth_dst_addr := 'FFFFFFFFFFFF'O,
+    ip_src_addr := ?,
+    ip_dst_addr := 'FFFFFFFF'O,
+    udp_src_port := 67,
+    udp_dst_port := 68,
+    pDU_DHCP := {
+      bOOT_REPLY := {
+        op := 2,
+        htype := DHCP_HTYPE_Ethernet_10Mb,
+        hlen := 6,
+        hops := ?,
+        xid := pl_xid,
+        secs := 0,
+        flags := '8000'O,
+        ciaddr := '00000000'O,
+        yiaddr := ?,
+        siaddr := ?,
+        giaddr := ?,
+        chaddr := pl_srcMAC & '00000000000000000000'O,
+        sname := {
+          sname := ""
+        },
+        file := {
+          file := ""
+        },
+        options := {
+          magicCookie := '63825363'O,// from RFC1497
+          options := {
+            {
+              message_type := {
+                code := DHCP_Message_Type_OPTION_TYPE,
+                len := 1,
+                val := DHCP_Ack
+              }
+            },
+            *,
+            {
+              end := {
+                code := DHCP_END_OPTION_TYPE
+              }
+            }
+          }
+        }//options end
+      }//boot_reply end
+    }//PDU DHCP end
+  }//ASP DHCP end
+
+//=========================================================================
+// Functions
+//=========================================================================
+
+  // Preamble
+  function f_DHCP_pre() runs on MASG_SCT {
+    vc_DHCP_Ethernet_EncDec_CT := DHCP_Ethernet_EncDec_CT.create;
+    vc_DHCP_CT := DHCP_CT.create;
+    connect(vc_DHCP_CT:DHCP_PCO, vc_DHCP_Ethernet_EncDec_CT:DHCP_PCO);
+    map(vc_DHCP_Ethernet_EncDec_CT:LANL2_PCO, system:LANL2_PCO);
+    vc_DHCP_Ethernet_EncDec_CT.start(f_MASG_EncDecComp_Behaviour());
+  }//end of function
+  
+  // Postamble
+  function f_DHCP_post() runs on MASG_SCT {
+    f_T_wait(0.1);
+    vc_DHCP_Ethernet_EncDec_CT.stop;
+    unmap(vc_DHCP_Ethernet_EncDec_CT:LANL2_PCO, system:LANL2_PCO);
+    disconnect(vc_DHCP_CT:DHCP_PCO, vc_DHCP_Ethernet_EncDec_CT:DHCP_PCO);
+  }//end of function
+
+  // Altsteps
+  altstep as_DHCP_def1() runs on DHCP_CT {
+      [] DHCP_PCO.receive {setverdict(fail); t_T_DHCP.stop}
+      [] t_T_DHCP.timeout {setverdict(inconc)}
+  }
+
+  // General functions
+  function f_T_wait(float pl_T) {
+    timer t_T := pl_T
+    t_T.start;
+    t_T.timeout;
+  }
+  
+  function f_DHCP_REQ_release(OCT6 pl_src_MAC, OCT4 pl_ipaddroct) runs on DHCP_CT {
+    v_xid := int2oct(float2int(2147483648.0*rnd()),4);
+    DHCP_PCO.send(t_ASP_DHCP_REQ_release(v_xid, pl_src_MAC, pl_ipaddroct));
+//    f_deleteIP(tsp_interface_name);
+  }
+  
+  // Functions for Test Cases
+  function f_DHCP_req() runs on DHCP_CT {
+    var OCT6 vl_src_MAC := '000E0C70'O & int2oct(float2int(65536.0*rnd()), 2);
+    var default vd_DHCP_PTC := activate(as_DHCP_def1());
+    v_xid := int2oct(float2int(2147483648.0*rnd()),4);
+    t_T_DHCP.start;
+    
+    DHCP_PCO.send(t_ASP_DHCP_REQ_discover(v_xid, vl_src_MAC));
+    alt {
+      [] DHCP_PCO.receive(tr_ASP_DHCP_REPLY_offer(v_xid, vl_src_MAC)) -> value v_ASP_DHCP 
+        {
+          var OCT4 vl_ipaddr := v_ASP_DHCP.pDU_DHCP.bOOT_REPLY.yiaddr
+          DHCP_PCO.send(t_ASP_DHCP_REQ_req(v_xid, vl_ipaddr, vl_src_MAC, 
+             v_ASP_DHCP.pDU_DHCP.bOOT_REPLY.options.options[1].server_identifier.val));
+          alt {
+            [] DHCP_PCO.receive(tr_ASP_DHCP_REPLY_ack(v_xid, vl_src_MAC)) -> value v_ASP_DHCP
+              {
+                t_T_DHCP.stop
+                setverdict(pass);
+//                f_setIP(tsp_interface_name,
+//                        f_IPv4_addr_dec(v_ASP_DHCP.pDU_DHCP.bOOT_REPLY.yiaddr),
+//                        f_IPv4_addr_dec(v_ASP_DHCP.pDU_DHCP.bOOT_REPLY.options.options[3].subnet_mask.val),
+//                        f_IPv4_addr_dec(v_ASP_DHCP.pDU_DHCP.bOOT_REPLY.options.options[8].broadcast_Address.val));
+                f_T_wait(5.0);
+                f_DHCP_REQ_release(vl_src_MAC, vl_ipaddr)
+              }
+          }//end of alt
+        }
+    }//end of alt
+    deactivate(vd_DHCP_PTC);
+  }//end of function
+
+  function f_DHCP_req_loop() runs on DHCP_CT {
+    var default vd_DHCP_PTC := activate(as_DHCP_def1());
+    for (var integer vl_i := 0; vl_i < 15; vl_i := vl_i + 1) {
+      var OCT6 vl_src_MAC := '000E0C7074'O & int2oct(vl_i, 1);
+      v_xid := int2oct(float2int(2147483648.0*rnd()), 4);
+      t_T_DHCP.start;
+      DHCP_PCO.send(t_ASP_DHCP_REQ_discover(v_xid, vl_src_MAC));
+      alt {
+        [] DHCP_PCO.receive(tr_ASP_DHCP_REPLY_offer(v_xid, vl_src_MAC)) -> value v_ASP_DHCP
+          {
+           t_T_DHCP.stop
+           setverdict(pass); 
+          }
+      }//end of alt
+    }//end of for
+    deactivate(vd_DHCP_PTC);
+  }//end of function
+
+//=========================================================================
+//Test cases
+//=========================================================================
+  testcase tc_DHCP_req() runs on MASG_SCT system MASG_SCT {
+    f_DHCP_pre()
+    vc_DHCP_CT.start(f_DHCP_req());
+    vc_DHCP_CT.done;
+    f_DHCP_post()
+  }//testcase end
+
+  testcase tc_DHCP_req_loop() runs on MASG_SCT system MASG_SCT {
+    f_DHCP_pre()
+    vc_DHCP_CT.start(f_DHCP_req_loop());
+    vc_DHCP_CT.done;
+    f_DHCP_post()
+  }//testcase end
+}//end of module
