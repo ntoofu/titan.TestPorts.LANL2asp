@@ -19,7 +19,7 @@
 //
 //  File:               LANL2asp_PT.cc
 //  Description:        LANL2 testport source
-//  Rev:                R8A
+//  Rev:                R8B
 //  Prodnr:             CNL 113 519
 //
 
