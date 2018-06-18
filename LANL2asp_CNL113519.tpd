@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
- Copyright (c) 2014 Ericsson
+ Copyright (c) 2017 Ericsson
 
   All rights reserved. This program and the accompanying materials
   are made available under the terms of the Eclipse Public License v1.0
@@ -10,7 +10,7 @@
 
    File:               LANL2asp_CNL113519.tpd
    Description:        tpd project file
-   Rev:                R8B
+   Rev:                R8C
    Prodnr:             CNL 113 519
 
  -->
@@ -20,13 +20,9 @@
     <ReferencedProject name="ProtocolModules_Common" projectLocationURI="../../ProtocolModules/COMMON/ProtocolModules_Common.tpd"/>
   </ReferencedProjects>
   <Folders>
-    <FolderResource projectRelativePath="doc" relativeURI="doc"/>
     <FolderResource projectRelativePath="src" relativeURI="src"/>
   </Folders>
   <Files>
-    <FileResource projectRelativePath="doc/LANL2asp_CNL113519_FS.pdf" relativeURI="doc/LANL2asp_CNL113519_FS.pdf"/>
-    <FileResource projectRelativePath="doc/LANL2asp_CNL113519_PRI.pdf" relativeURI="doc/LANL2asp_CNL113519_PRI.pdf"/>
-    <FileResource projectRelativePath="doc/LANL2asp_CNL113519_UG.pdf" relativeURI="doc/LANL2asp_CNL113519_UG.pdf"/>
     <FileResource projectRelativePath="src/LANL2asp_PT.cc" relativeURI="src/LANL2asp_PT.cc"/>
     <FileResource projectRelativePath="src/LANL2asp_PT.hh" relativeURI="src/LANL2asp_PT.hh"/>
     <FileResource projectRelativePath="src/LANL2asp_PortType.ttcn" relativeURI="src/LANL2asp_PortType.ttcn"/>
@@ -55,14 +51,6 @@
           <formalParameter>.*</formalParameter>
         </NamingCoventions>
       </ProjectProperties>
-      <FolderProperties>
-        <FolderResource>
-          <FolderPath>doc</FolderPath>
-          <FolderProperties>
-            <ExcludeFromBuild>true</ExcludeFromBuild>
-          </FolderProperties>
-        </FolderResource>
-      </FolderProperties>
     </Configuration>
   </Configurations>
 </TITAN_Project_File_Information>
