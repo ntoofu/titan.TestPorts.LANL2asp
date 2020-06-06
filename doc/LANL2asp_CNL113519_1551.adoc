@@ -209,6 +209,10 @@ This parameter is optional. It controls the behavior of the test port in the cas
 
 ** `_report_` – The test port sends an error ASP to the test case.
 
+* `pcap_timeout`
++
+This parameter is optional. The parameter can be used to specify the read timeout of libpcap in milliseconds. If set to `_"0"_` (default) in some platforms, packets cannot be observed until sufficient number of packets has been arrived to fill the buffer.
+
 = Error Messages
 
 The error messages have the following general form:

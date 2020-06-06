@@ -72,6 +72,7 @@
             unsigned char      *dest_mac_pdu;        // test port parameter, destination MAC address of PDU
             unsigned int       eth_proto;            // test port parameter, ethernet type field
             int                error_mode;           // 0 - error, 1 - ignore, 2 - warning, 3 - report
+            int                pcap_timeout;         // read timeout of libpcap in milliseconds
 
           public:
             LANL2asp__PT_PROVIDER(const char *par_port_name = NULL);

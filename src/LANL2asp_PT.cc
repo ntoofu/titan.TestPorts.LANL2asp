@@ -74,6 +74,7 @@ namespace LANL2asp__PortType {
         dump_erroneous_frame = FALSE;
         if_index             = -1;
         error_mode           = 0;
+        pcap_timeout         = 0;
         mapped               = FALSE;
         port_mode            = 0;
         interface_list       = NULL;
@@ -217,6 +218,8 @@ namespace LANL2asp__PortType {
                 port_mode=0;
                 return 1;
             }
+        } else if (strcasecmp(parameter_name, "pcap_timeout") == 0) {
+            pcap_timeout = str2int(parameter_value);
         } else {
             TTCN_warning("LANL2asp_PT('%s'): Unsupported Test Port parameter: '%s'.",port_name,parameter_name);
             return 2;
@@ -354,7 +357,7 @@ namespace LANL2asp__PortType {
         interface_list[id]->eth_interface_name=mcopystr(interface_name);
         interface_list[id]->packet_filter=mcopystr(l_packet_filter);
         /* Socket for sending and reading (with pcap) */
-        if ((interface_list[id]->p_handle = pcap_open_live(interface_name,interface_list[id]->max_octets,l_promisc_mode,0,errbuf)) == NULL) {
+        if ((interface_list[id]->p_handle = pcap_open_live(interface_name,interface_list[id]->max_octets,l_promisc_mode,pcap_timeout,errbuf)) == NULL) {
             if (issue_err) {
                 TTCN_error("LANL2asp_PT('%s'): Cannot open socket on interface '%s' for reading with pcap.",port_name,eth_interface_name);
             } else {
